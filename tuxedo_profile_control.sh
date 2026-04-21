@@ -65,7 +65,7 @@ case "$1" in
         echo "Usage: $0 {--list|--next|--set ID}"
         echo "  --list -l    : Show all available profiles"
         echo "  --current -c : Show the currently active profile"
-        echo "  --next -s    : Cycle to the next profile"
-        echo "  --set ID -n  : Switch to a specific profile ID"
+        echo "  --next -n    : Cycle to the next profile"
+        echo "  --set ID -s ID  : Switch to a specific profile ID"
         ;;
 esac
