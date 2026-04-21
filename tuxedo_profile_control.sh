@@ -28,7 +28,13 @@ set_profile() {
     echo "Switching to profile ID: $target_id..."
     gdbus call $BUS_ARGS.SetTempProfileById "$target_id" > /dev/null
 
-    # If notify-send is available, send a notification
+    local active_json=$(call_tcc "GetActiveProfileJSON")
+    local active_name=$(echo "$active_json" | jq -r '.name')
+    if [[ "$active_name" != "$target_name" ]]; then
+        echo "Failed to switch profiles. Current profile is still: $active_name"
+        exit 1
+    fi
+
     if command -v notify-send &> /dev/null; then
         notify-send "Tuxedo Control Center" "Switched to profile: $target_name"
     fi
