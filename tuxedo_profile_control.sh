@@ -20,10 +20,18 @@ set_profile() {
     local all_json=$(call_tcc "GetProfilesJSON")
     local target_name=$(echo "$all_json" | jq -r --arg id "$target_id" '.[] | select(.id == $id) | .name')
 
+    if [[ -z "$target_name" ]]; then
+        echo "Error: No profile found with ID '$target_id'."
+        exit 1
+    fi
+
     echo "Switching to profile ID: $target_id..."
-    # TCCD expects the ID passed as a string argument to SetProfile
     gdbus call $BUS_ARGS.SetTempProfileById "$target_id" > /dev/null
-    notify-send "Tuxedo Control Center" "Switched to profile: $target_name"
+
+    # If notify-send is available, send a notification
+    if command -v notify-send &> /dev/null; then
+        notify-send "Tuxedo Control Center" "Switched to profile: $target_name"
+    fi
 }
 
 next_profile() {
@@ -33,7 +41,6 @@ next_profile() {
 
     mapfile -t ids < <(echo "$all_json" | jq -r '.[].id')
 
-    # Find the index of the current ID
     for i in "${!ids[@]}"; do
         if [[ "${ids[$i]}" == "$current_id" ]]; then
             next_idx=$(( (i + 1) % ${#ids[@]} ))
@@ -43,7 +50,21 @@ next_profile() {
     done
 }
 
-# Logic for flags
+if ! command -v jq &> /dev/null; then
+    echo "Error: 'jq' is required but not installed. Please install it and try again."
+    exit 1
+fi
+
+if ! command -v gdbus &> /dev/null; then
+    echo "Error: 'gdbus' is required but not installed. Please install it and try again."
+    exit 1
+fi
+
+if ! call_tcc "GetActiveProfileJSON" &> /dev/null; then
+    echo "Error: Unable to communicate with Tuxedo Control Center. Please ensure TCC Daemon is running and you have the necessary permissions."
+    exit 1
+fi
+
 case "$1" in
     --list|-l)
         list_profiles
@@ -63,9 +84,9 @@ case "$1" in
         ;;
     *)
         echo "Usage: $0 {--list|--next|--set ID}"
-        echo "  --list -l    : Show all available profiles"
-        echo "  --current -c : Show the currently active profile"
-        echo "  --next -n    : Cycle to the next profile"
+        echo "  --list -l       : Show all available profiles"
+        echo "  --current -c    : Show the currently active profile"
+        echo "  --next -n       : Cycle to the next profile"
         echo "  --set ID -s ID  : Switch to a specific profile ID"
         ;;
 esac
